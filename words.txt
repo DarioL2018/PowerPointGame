@@ -1,0 +1,10 @@
+dog
+cat
+monkey
+fish
+zebra
+fox
+chair
+table
+computer
+television
