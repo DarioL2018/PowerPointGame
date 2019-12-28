@@ -7,7 +7,7 @@ Private Declare PtrSafe Function URLDownloadToFile Lib "urlmon" _
         ByVal dwReserved As LongPtr, _
         ByVal lpfnCB As LongPtr _
       ) As Long
-
+Dim path As String
 
 Private Function DecodeBase64(ByVal strData As String) As Byte()
 
@@ -35,6 +35,7 @@ Sub downloadAndRecoverImages(keyword As String)
     Dim xmlhttp As Object
     Dim docum As HTMLDocument
     Dim url4 As String
+    Dim intCode As Long
     
     Set xmlhttp = CreateObject("MSXML2.xmlHttp")
     'my_url = "https://www.google.com/search?as_st=y&tbm=isch&as_q=puppy&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:l,ift:jpg,sur:fmc"
@@ -48,14 +49,16 @@ Sub downloadAndRecoverImages(keyword As String)
     htmlPrincipal.write resp
     Set docum = htmlPrincipal.body.document
     For i = 0 To 4
-        dlpath = ActivePresentation.path & "\" & keyword & "_" & (i + 1) & ".jpg"
+        dlpath = path & "\" & keyword & "_" & (i + 1) & ".jpg"
         url4 = docum.getElementsByClassName("iusc")(i).href
         urlImagen = URLDecode(getParameter(url4, "mediaurl"))
         Debug.Print url4
         'exph=996&expw=1024
-        URLDownloadToFile 0&, urlImagen, dlpath, BINDF_GETNEWESTVERSION, 0&
-        
-        InsertarImagenes keyword, (dlpath)
+        intCode = URLDownloadToFile(0&, urlImagen, dlpath, BINDF_GETNEWESTVERSION, 0&)
+        If (intCode = 0) Then
+            InsertarImagenes keyword, (dlpath)
+            Kill (dlpath)
+        End If
     Next
     
 End Sub
@@ -63,11 +66,16 @@ End Sub
 Sub mainProgram()
     Dim arrKeyWords As Object
     Set arrKeyWords = CreateObject("System.Collections.ArrayList")
+    path = ActivePresentation.path
+    
     Set arrKeyWords = readFile()
     
     For Each word In arrKeyWords
         downloadAndRecoverImages (word)
     Next
+    
+    ActivePresentation.SaveAs path & "\" & "Vocabulary.pptx"
+    
 End Sub
 
 Function readFile() As Object
@@ -76,7 +84,7 @@ Function readFile() As Object
     Dim arrKeyWords As Object
     
     texline = ""
-    myFile = "words.txt"
+    myFile = path & "\" & "words.txt"
     Set arrKeyWords = CreateObject("System.Collections.ArrayList")
     'Open Plain text File
     Open myFile For Input As #1
@@ -94,7 +102,8 @@ Function readFile() As Object
     Set readFile = arrKeyWords
 End Function
 
-Sub InsertarImagenes(titulo As String, path As String)
+Sub InsertarImagenes(titulo As String, pathImage As String)
+
     Dim archivoPPT As PowerPoint.Application
     Dim diapositiva As PowerPoint.Slide
     Dim tablaTotal() As Shape
@@ -114,7 +123,7 @@ Sub InsertarImagenes(titulo As String, path As String)
     'archivoPPT.Presentations.Add
     Dim oSlides As Slides, oSlide As Slide
     Set oSlides = ActivePresentation.Slides
-
+    
     Set oSlide = oSlides.AddSlide(ActivePresentation.Slides.Count + 1, _
     GetLayout("SmileBlank"))
     oSlide.Select
@@ -127,19 +136,24 @@ Sub InsertarImagenes(titulo As String, path As String)
         LinkToFile:=msoFalse, _
         SaveWithDocument:=msoTrue, Left:=60, Top:=35, _
         Width:=98, Height:=48).Select
+        
     Dim imageA As Shape
-        Set imageA = oSlide.Shapes.AddPicture( _
-        FileName:=path, _
-        LinkToFile:=msoFalse, _
-        SaveWithDocument:=msoTrue, Left:=0, Top:=0, _
-        Width:=-1, Height:=-1)
-         
-         oSlide.Shapes(2).TextFrame.TextRange.Text = UCase(titulo)
-         Dim titleA As Shape
-         
-        Set titleA = oSlide.NotesPage.Shapes.AddShape(msoShapeRectangle, 0, 0, 0, 0)
-        oSlide.NotesPage.Shapes(2).TextFrame.TextRange.Text = UCase(titulo)
-         
+    Set imageA = oSlide.Shapes.AddPicture( _
+    FileName:=pathImage, _
+    LinkToFile:=msoFalse, _
+    SaveWithDocument:=msoTrue, Left:=0, Top:=0, _
+    Width:=-1, Height:=-1)
+    
+    oSlide.Shapes(2).TextFrame.TextRange.Text = UCase(titulo)
+    
+    Dim titleA As Shape
+    
+    'Set titleA = oSlide.NotesPage.Shapes.AddShape(msoShapeRectangle, 0, 0, 0, 0)
+    oSlide.NotesPage.Shapes(2).TextFrame.TextRange.Text = UCase(titulo)
+    
+    'Save PPT
+    'oSlide.SaveAs
+        
         'Centramos la imagen insertada
         'archivoPPT.ActiveWindow.Selection.ShapeRange.Align msoAlignCenters, msoTrue
         'archivoPPT.ActiveWindow.Selection.ShapeRange.Align msoAlignMiddles, msoTrue
@@ -234,5 +248,7 @@ Function getParameter(substring As String, parameter As String) As String
     End If
     getParameter = result
 End Function
+
+
 
 
