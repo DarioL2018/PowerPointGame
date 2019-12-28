@@ -8,6 +8,7 @@ Private Declare PtrSafe Function URLDownloadToFile Lib "urlmon" _
         ByVal lpfnCB As LongPtr _
       ) As Long
 Dim path As String
+Dim widthSquare, heightSquare, leftSquare, topSquare
 
 Private Function DecodeBase64(ByVal strData As String) As Byte()
 
@@ -73,9 +74,9 @@ Sub mainProgram()
     For Each word In arrKeyWords
         downloadAndRecoverImages (word)
     Next
-    
     ActivePresentation.SaveAs path & "\" & "Vocabulary.pptx"
-    
+    cubrirImagenes
+    ActivePresentation.SaveAs path & "\" & "Hidden Pictures", ppSaveAsOpenXMLPresentationMacroEnabled
 End Sub
 
 Function readFile() As Object
@@ -101,41 +102,19 @@ Function readFile() As Object
     Close #1
     Set readFile = arrKeyWords
 End Function
-
 Sub InsertarImagenes(titulo As String, pathImage As String)
 
     Dim archivoPPT As PowerPoint.Application
     Dim diapositiva As PowerPoint.Slide
     Dim tablaTotal() As Shape
-    Dim largo, ancho, dimension As Integer
-    largo = 10
-    ancho = 10
-    dimension = 50
-    ReDim tablaTotal(0 To largo, 0 To ancho)
-
-    'Dim coll As Object
-    'Set coll = CreateObject("System.Collections.ArrayList")
-        
-    'Instancia del objeto PowerPoint.Application
-    'Set archivoPPT = New PowerPoint.Application
-     
-    'Creamos una presentación PowerPoint
-    'archivoPPT.Presentations.Add
+    
     Dim oSlides As Slides, oSlide As Slide
     Set oSlides = ActivePresentation.Slides
     
     Set oSlide = oSlides.AddSlide(ActivePresentation.Slides.Count + 1, _
     GetLayout("SmileBlank"))
     oSlide.Select
-    'ActiveWindow.View.GotoSlide (ActivePresentation.Slides.Count)
     Dim item As Variant
-
-        
-        'ActiveWindow.Selection.SlideRange.Shapes.AddPicture( _
-        FileName:="C:\tmp\tempo.jpeg", _
-        LinkToFile:=msoFalse, _
-        SaveWithDocument:=msoTrue, Left:=60, Top:=35, _
-        Width:=98, Height:=48).Select
         
     Dim imageA As Shape
     Set imageA = oSlide.Shapes.AddPicture( _
@@ -143,38 +122,44 @@ Sub InsertarImagenes(titulo As String, pathImage As String)
     LinkToFile:=msoFalse, _
     SaveWithDocument:=msoTrue, Left:=0, Top:=0, _
     Width:=-1, Height:=-1)
-    
+    widthSquare = imageA.Width
+    heightSquare = imageA.Height
+    leftSquare = imageA.Left
+    topSquare = imageA.Top
     oSlide.Shapes(2).TextFrame.TextRange.Text = UCase(titulo)
-    
-    Dim titleA As Shape
-    
-    'Set titleA = oSlide.NotesPage.Shapes.AddShape(msoShapeRectangle, 0, 0, 0, 0)
     oSlide.NotesPage.Shapes(2).TextFrame.TextRange.Text = UCase(titulo)
+
+End Sub
+
+Sub cubrirImagenes()
+    Dim archivoPPT As PowerPoint.Application
+    Dim diapositiva As PowerPoint.Slide
+    Dim tablaTotal() As Shape
+    Dim largo, ancho, dimension As Integer
+    dimension = 60
+     
+    ancho = widthSquare / dimension
+    largo = heightSquare / dimension
     
-    'Save PPT
-    'oSlide.SaveAs
-        
-        'Centramos la imagen insertada
-        'archivoPPT.ActiveWindow.Selection.ShapeRange.Align msoAlignCenters, msoTrue
-        'archivoPPT.ActiveWindow.Selection.ShapeRange.Align msoAlignMiddles, msoTrue
+    Dim oSlides As Slides, oSlide As Slide
+    Set oSlides = ActivePresentation.Slides
+    
+    For Index = 1 To oSlides.Count
+        oSlides(Index).CustomLayout = GetLayout("SmileCover")
          
-'        Dim sh As Shape
-'        For i = 0 To largo
-'        For j = 0 To ancho
-'            Set sh = ActiveWindow.Selection.SlideRange.Shapes.AddShape(Type:=msoShapeRectangle, _
-'    Left:=j * dimension, Top:=i * 50, Width:=dimension, Height:=dimension)
-'            'Set tablaTotal(i, j) = sh
-'        Next j
-'        Next i
+        Dim sh As Shape
+        For i = 0 To largo
+        For j = 0 To ancho
+            Set sh = oSlides(Index).Shapes.AddShape(Type:=msoShapeRectangle, _
+    Left:=(leftSquare - 6 + (j * dimension)), Top:=(topSquare - 50 + (i * dimension)), Width:=dimension, Height:=dimension)
+            sh.Fill.ForeColor.RGB = randColour
+        Next j
+        Next i
               
 '        sh.Fill.ForeColor.RGB = RGB(220, 105, 0)
 '        sh.Delete
-        
-    
-'Eliminamos las instancias creadas
-'Set diapositiva = Nothing
-'Set archivoPPT = Nothing
-
+        'oSlides(Index).Shapes(2).ZOrder msoBringToFront
+    Next Index
 End Sub
 
 Public Function GetLayout( _
@@ -249,6 +234,55 @@ Function getParameter(substring As String, parameter As String) As String
     getParameter = result
 End Function
 
+Sub removeSquare()
+    'cubrirImagenes
+    Dim Shapes As Object
+    Dim indexS As Integer
+    
+    Set Shapes = ActivePresentation.SlideShowWindow.View.Slide.Shapes
+    
+    indexS = 0
+    'Debug.Print "Cantidad de Figuras" & Shapes.Count
+    For i = 1 To Shapes.Count
+         If (Shapes(i).Type = msoShapeRectangle) Then
+            indexS = i
+            Exit For
+        End If
+    Next i
+    
+    If indexS > 0 Then
+        'Shapes(randNumber(indexS, Shapes.Count)).Visible = msoFalse
+        Shapes(randNumber(indexS, Shapes.Count)).Delete
+    Else
+        ActivePresentation.SlideShowWindow.View.Slide.CustomLayout = GetLayout("SmileBlank")
+    End If
+End Sub
 
+Sub removeAllSquares()
+    'cubrirImagenes
+    Dim ShapesAll As Shapes
+   
+    Set ShapesAll = ActivePresentation.SlideShowWindow.View.Slide.Shapes
+    'Set ShapesAll = ActivePresentation.Slides(8).Shapes
+    'Debug.Print "Cantidad de Figuras" & ShapesAll.Count
+    For i = ShapesAll.Count To 1 Step -1
+         If (ShapesAll(i).Type = msoShapeRectangle) Then
+            ShapesAll(i).Delete
+        End If
+    Next i
+    ActivePresentation.SlideShowWindow.View.Slide.CustomLayout = GetLayout("SmileBlank")
+End Sub
+
+
+Function randNumber(upperbound As Integer, lowerbound As Integer) As Integer
+    randNumber = Int((upperbound - lowerbound + 1) * Rnd + lowerbound)
+End Function
+
+Function randColour()
+    ConstantArray = Array(vbBlack, vbBlue, vbCyan, vbRed, vbGreen, vbYellow _
+    , vbMagenta, vbWhite)
+    
+    randColour = ConstantArray(randNumber(1, 8))
+End Function
 
 
