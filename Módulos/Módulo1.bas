@@ -9,6 +9,7 @@ Private Declare PtrSafe Function URLDownloadToFile Lib "urlmon" _
       ) As Long
 Dim path As String
 Dim widthSquare, heightSquare, leftSquare, topSquare
+Public Const dimension As Integer = 90
 
 Private Function DecodeBase64(ByVal strData As String) As Byte()
 
@@ -77,6 +78,9 @@ Sub mainProgram()
     ActivePresentation.SaveAs path & "\" & "Vocabulary.pptx"
     cubrirImagenes
     ActivePresentation.SaveAs path & "\" & "Hidden Pictures", ppSaveAsOpenXMLPresentationMacroEnabled
+    MsgBox "Successful execution!"
+    ActivePresentation.Application.Quit
+    
 End Sub
 
 Function readFile() As Object
@@ -135,11 +139,12 @@ Sub cubrirImagenes()
     Dim archivoPPT As PowerPoint.Application
     Dim diapositiva As PowerPoint.Slide
     Dim tablaTotal() As Shape
-    Dim largo, ancho, dimension As Integer
-    dimension = 60
+    Dim largo, ancho As Integer
      
-    ancho = widthSquare / dimension
-    largo = heightSquare / dimension
+    ancho = Round(widthSquare / dimension)
+    largo = Round(heightSquare / dimension)
+    Debug.Print "widthSquare: " & widthSquare & " Calculation: " & ancho
+    Debug.Print "heightSquare: " & heightSquare & " Calculation: " & largo
     
     Dim oSlides As Slides, oSlide As Slide
     Set oSlides = ActivePresentation.Slides
@@ -148,8 +153,8 @@ Sub cubrirImagenes()
         oSlides(Index).CustomLayout = GetLayout("SmileCover")
          
         Dim sh As Shape
-        For i = 0 To largo
-        For j = 0 To ancho
+        For i = 0 To largo - 1
+        For j = 0 To ancho - 1
             Set sh = oSlides(Index).Shapes.AddShape(Type:=msoShapeRectangle, _
     Left:=(leftSquare - 6 + (j * dimension)), Top:=(topSquare - 50 + (i * dimension)), Width:=dimension, Height:=dimension)
             sh.Fill.ForeColor.RGB = randColour
